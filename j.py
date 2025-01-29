@@ -4,18 +4,11 @@ from queue import Queue
 import random
 import time
 import logging
+import requests
+from fake_useragent import UserAgent
 
 # إعداد تسجيل الأحداث (logging)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
-# قائمة ثابتة لعناوين User-Agent
-USER_AGENTS = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:94.0) Gecko/20100101 Firefox/94.0",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36",
-    "Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101 Firefox/91.0",
-    "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.110 Safari/537.36 Edg/96.0.1054.62",
-]
 
 # قائمة عناوين URL المستهدفة
 urls = Queue()
@@ -26,6 +19,14 @@ def get_random_ip():
     توليد عنوان IP عشوائي لاستخدامه في رأس الطلب.
     """
     return ".".join(str(random.randint(0, 255)) for _ in range(4))
+
+# الحصول على User-Agent عشوائي
+def get_random_user_agent():
+    """
+    الحصول على User-Agent عشوائي باستخدام fake_useragent.
+    """
+    ua = UserAgent()
+    return ua.random
 
 # إرسال الطلبات
 def send_requests():
@@ -38,7 +39,7 @@ def send_requests():
         for attempt in range(3):  # إعادة المحاولة 3 مرات في حالة الفشل
             try:
                 headers = {
-                    "User-Agent": random.choice(USER_AGENTS),
+                    "User-Agent": get_random_user_agent(),
                     "Accept-Language": "en-US,en;q=0.9",
                     "Referer": "https://www.google.com/",
                     "X-Forwarded-For": get_random_ip(),
